@@ -1,21 +1,20 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Voice from 'react-native-voice'; // Importar Voice
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authMessage, setAuthMessage] = useState("Espere, autenticando...");
   const [failedAttempts, setFailedAttempts] = useState(0);
-  const [spokenText, setSpokenText] = useState('');
 
   useEffect(() => {
+    // Cuando la app inicia, guía al usuario
     guideUser();
     authenticateUser();
-    Voice.onSpeechResults = onSpeechResults; // Vincular resultados del reconocimiento
   }, []);
 
+  // Función para que la app hable mensajes
   const speak = (message) => {
     Speech.speak(message, {
       language: 'es-MX',
@@ -24,13 +23,18 @@ const App = () => {
     });
   };
 
+  // Guía inicial de comandos y registro de huella
   const guideUser = () => {
     speak(
       "Bienvenido a la aplicación. Para comenzar, debe registrar su huella dactilar. Por favor, coloque su dedo en el lector de huellas."
     );
   };
 
+  // Autenticación y registro de huella
   const authenticateUser = async () => {
+    setAuthMessage("Por favor, registre su huella dactilar.");
+    speak("Por favor, registre su huella dactilar.");
+
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
     const supportedAuthTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
 
@@ -38,54 +42,40 @@ const App = () => {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Registro de huella dactilar requerido',
         fallbackLabel: 'Intentar de nuevo',
-        disableDeviceFallback: true,
       });
 
       if (result.success) {
         setIsAuthenticated(true);
         setAuthMessage("Registro exitoso. Bienvenido a la aplicación.");
         speak("Registro exitoso. Bienvenido a la aplicación.");
-        startListening(); // Inicia escucha de comandos
+        showAvailableFeatures(); // Muestra las funcionalidades después del registro
       } else {
-        handleFailedAttempt();
+        setFailedAttempts((prev) => prev + 1);
+        setAuthMessage("Registro fallido. Inténtalo nuevamente.");
+        speak("Registro fallido. Inténtalo nuevamente.");
+
+        if (failedAttempts >= 2) {
+          speak(
+            "Se ha alcanzado el límite de intentos fallidos. Por favor, intente nuevamente más tarde."
+          );
+          setFailedAttempts(0);
+        }
       }
     } else {
-      setAuthMessage("No se encontró soporte biométrico.");
-      speak("No se encontró soporte biométrico en su dispositivo.");
+      setAuthMessage(
+        "No se encontró soporte biométrico. No puede usar esta aplicación."
+      );
+      speak(
+        "No se encontró soporte biométrico en su dispositivo. No puede usar esta aplicación."
+      );
     }
   };
 
-  const handleFailedAttempt = () => {
-    setFailedAttempts((prev) => prev + 1);
-    speak("Registro fallido. Inténtalo nuevamente.");
-
-    if (failedAttempts >= 2) {
-      speak("Límite de intentos fallidos. Intenta más tarde.");
-      Alert.alert("Intentos fallidos", "Has alcanzado el límite.");
-      setFailedAttempts(0);
-    }
-  };
-
-  const startListening = async () => {
-    try {
-      speak("Diga un comando, como abrir GPS o buscar rutas.");
-      await Voice.start('es-MX'); // Inicia la escucha
-    } catch (error) {
-      console.error("Error al iniciar Voice: ", error);
-    }
-  };
-
-  const onSpeechResults = (event) => {
-    const text = event.value[0]; // Captura el texto reconocido
-    setSpokenText(text);
-
-    if (text.includes("GPS")) {
-      speak("Abriendo GPS.");
-    } else if (text.includes("rutas")) {
-      speak("Buscando rutas.");
-    } else {
-      speak("Comando no reconocido.");
-    }
+  // Funcionalidades disponibles
+  const showAvailableFeatures = () => {
+    speak(
+      "Ahora puede usar la aplicación. Las funcionalidades disponibles son: buscar rutas, abrir el GPS y personalizar la aplicación. Diga el nombre de la función que desea usar."
+    );
   };
 
   return (
@@ -94,12 +84,24 @@ const App = () => {
         {isAuthenticated ? (
           <>
             <Text style={styles.welcomeText}>¡Bienvenido a la aplicación!</Text>
-            <Text style={styles.spokenText}>Último comando: {spokenText}</Text>
+            {/* Simulación de íconos visuales */}
             <TouchableOpacity
               style={styles.featureButton}
-              onPress={startListening}
+              onPress={() => speak("Abrir GPS")}
             >
-              <Text style={styles.featureText}>Escuchar comando</Text>
+              <Text style={styles.featureText}>GPS</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.featureButton}
+              onPress={() => speak("Buscar rutas")}
+            >
+              <Text style={styles.featureText}>Buscar Rutas</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.featureButton}
+              onPress={() => speak("Personalizar la aplicación")}
+            >
+              <Text style={styles.featureText}>Personalización</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -135,11 +137,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     marginBottom: 20,
-  },
-  spokenText: {
-    fontSize: 16,
-    color: '#fff',
-    marginVertical: 10,
   },
   authenticatingText: {
     fontSize: 20,
