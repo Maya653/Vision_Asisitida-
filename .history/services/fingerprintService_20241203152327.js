@@ -7,7 +7,7 @@ export const registerFingerprint = async (userId, huellaData) => {
       },
       body: JSON.stringify({ userId, huellaData }),
     });
-    
+
     const textResponse = await response.text(); // Leer la respuesta como texto
     let data;
 

@@ -165,7 +165,7 @@ const App = () => {
   const triggerEmergency = () => {
     speak('Emergencia activada. Enviando mensaje de ayuda.');
 
-    const phoneNumber = '+5573497101'; // Número real
+    const phoneNumber = '+521234567890'; // Cambiar por número real
     const message = 'El usuario tiene problemas.';
     const whatsappURL = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
 

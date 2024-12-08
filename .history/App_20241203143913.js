@@ -1,9 +1,8 @@
-import { useKeepAwake } from 'expo-keep-awake'; // Mantiene la pantalla encendida
+import { useKeepAwake } from 'expo-keep-awake'; // Mantener la pantalla encendida
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useState } from 'react';
-import { Linking, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
-import { registerFingerprint } from './services/fingerprintService';
+import { StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -11,11 +10,13 @@ const App = () => {
   const [userId] = useState(Math.floor(Math.random() * 10000)); // ID de usuario aleatorio
   const [timeoutId, setTimeoutId] = useState(null); // ID del temporizador
   const [lastTap, setLastTap] = useState(0); // Último toque registrado
-  const [activeFeature, setActiveFeature] = useState(''); // Funcionalidad activa
-  const [pressStartTime, setPressStartTime] = useState(0); // Tiempo para el botón de emergencia
+  const [lastVolumeDownTime, setLastVolumeDownTime] = useState(0); // Control del doble toque de volumen
+  const [volumeDownTapCount, setVolumeDownTapCount] = useState(0); // Contador de toques del volumen hacia abajo
 
+  // Mantener la pantalla activa
   useKeepAwake();
 
+  // Función para hablar
   const speak = (message) => {
     console.log('Hablando:', message);
     Speech.speak(message, {
@@ -25,24 +26,30 @@ const App = () => {
     });
   };
 
+  // Instrucciones iniciales al usuario
   const guideUser = () => {
     speak(
-      'Hola, soy tu app de visión asistida. Toca dos veces la parte superior para autenticarte, dos veces la parte inferior para registrar una nueva huella o mantén presionada la parte inferior por 4 segundos para activar una emergencia.'
+      'Hola, soy tu app de visión asistida. Toca dos veces la parte superior para autenticarte o la parte inferior para registrar una nueva huella.'
     );
   };
 
+  // Instrucciones después de inicio de sesión
   const guidePostLogin = () => {
     speak(
-      'Inicio de sesión exitoso. Toca dos veces la parte superior para activar el GPS, dos veces la parte inferior para buscar rutas, o mantén presionada la parte inferior por 4 segundos para una emergencia.'
+      'Inicio de sesión exitoso. Toca dos veces la parte superior para activar el GPS, o dos veces la parte inferior para buscar rutas.'
     );
   };
 
+  // Manejo de toques en pantalla
   const handleTap = (e) => {
+    if (isAuthenticated) return; // Deshabilitar toques si ya está autenticado
+
     const now = Date.now();
     const touchY = e.nativeEvent.pageY; // Coordenada Y del toque
     const isTopArea = touchY < 500; // Área superior (ajustar según pantalla)
     const isBottomArea = touchY > 500; // Área inferior (ajustar según pantalla)
 
+    // Lógica para contar toques
     if (tapCount === 0 || now - lastTap > 600) {
       setTapCount(1);
       clearTimeout(timeoutId);
@@ -57,38 +64,40 @@ const App = () => {
     }, 1000);
     setTimeoutId(newTimeoutId);
 
+    // Procesar acción basada en la ubicación del toque
     if (tapCount === 2) {
-      if (isAuthenticated) {
-        // Funcionalidades tras autenticación
-        if (isTopArea) {
-          activateGPS();
-        } else if (isBottomArea) {
-          activateRouteSearch();
-        }
-      } else {
-        // Funcionalidades antes de autenticación
-        if (isTopArea) {
-          authenticateUser();
-        } else if (isBottomArea) {
-          handleFingerprintRegistration();
-        }
+      if (isTopArea) {
+        authenticateUser();
+      } else if (isBottomArea) {
+        handleFingerprintRegistration();
       }
       setTapCount(0); // Reiniciar contador
     }
   };
 
-  const activateGPS = () => {
-    speak('Activando GPS para localizar tu ubicación...');
-    setActiveFeature('GPS activado');
-    // código para activar el GPS
+  // Función para manejar los toques del botón de volumen
+  const handleVolumeDownTap = () => {
+    const now = Date.now();
+    if (now - lastVolumeDownTime < 600) {
+      setVolumeDownTapCount(volumeDownTapCount + 1);
+    } else {
+      setVolumeDownTapCount(1); // Reseteamos el contador si pasa más tiempo
+    }
+    setLastVolumeDownTime(now);
+
+    if (volumeDownTapCount >= 2) {
+      triggerEmergency();
+      setVolumeDownTapCount(0); // Reiniciar contador después de la emergencia
+    }
   };
 
-  const activateRouteSearch = () => {
-    speak('Buscando rutas disponibles. Por favor espera...');
-    setActiveFeature('Búsqueda de rutas');
-    // código para búsqueda de rutas
+  // Activar función de emergencia
+  const triggerEmergency = () => {
+    speak('¡Emergencia activada! Enviando ubicación y alertas de emergencia.');
+    // Aquí puedes agregar la lógica para enviar la ubicación y la notificación de emergencia
   };
 
+  // Autenticar usuario
   const authenticateUser = async () => {
     speak('Coloca tu dedo en el sensor para autenticarte.');
 
@@ -106,7 +115,7 @@ const App = () => {
         if (result.success) {
           speak('Autenticación biométrica exitosa. Bienvenido.');
           setIsAuthenticated(true);
-          guidePostLogin();
+          guidePostLogin(); // Guía post inicio de sesión
         } else {
           speak('Autenticación fallida. Intenta de nuevo.');
         }
@@ -119,6 +128,7 @@ const App = () => {
     }
   };
 
+  // Registrar nueva huella
   const handleFingerprintRegistration = async () => {
     speak('Coloca tu dedo en el sensor para registrar tu huella.');
 
@@ -132,17 +142,12 @@ const App = () => {
       if (result.success) {
         speak('Huella capturada. Registrando en el sistema.');
 
-        // Simulación de huella 
+        // Simulación de huella (reemplazar con datos reales si es necesario)
         const huellaData = 'data:image/png;base64,.....';
 
         // Registrar huella en el backend
-        const response = await registerFingerprint(userId, huellaData);
-
-        if (response && response.success) {
-          speak('Huella registrada con éxito.');
-        } else {
-          speak('Error al registrar huella en el sistema.');
-        }
+        await registerFingerprint(userId, huellaData);
+        speak('Huella registrada con éxito.');
       } else {
         speak('No se pudo capturar la huella. Intenta de nuevo.');
       }
@@ -152,65 +157,29 @@ const App = () => {
     }
   };
 
-  const handleEmergencyPress = () => {
-    const now = Date.now();
-
-    if (now - pressStartTime >= 4000) {
-      triggerEmergency();
-    }
-
-    setPressStartTime(0);
-  };
-
-  const triggerEmergency = () => {
-    speak('Emergencia activada. Enviando mensaje de ayuda.');
-
-    const phoneNumber = '+5573497101'; // Número real
-    const message = 'El usuario tiene problemas.';
-    const whatsappURL = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-
-    Linking.canOpenURL(whatsappURL)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(whatsappURL);
-        } else {
-          console.error('No se pudo abrir WhatsApp');
-          speak('No se pudo abrir WhatsApp para enviar el mensaje.');
-        }
-      })
-      .catch((err) => console.error('Error al intentar abrir WhatsApp:', err));
-  };
-
   useEffect(() => {
     guideUser();
   }, []);
 
   return (
-    <TouchableWithoutFeedback
-      onPress={handleTap}
-      onPressIn={(e) => {
-        const touchY = e.nativeEvent.pageY;
-        if (touchY > 500) setPressStartTime(Date.now());
-      }}
-      onPressOut={(e) => {
-        const touchY = e.nativeEvent.pageY;
-        if (touchY > 500) {
-          handleEmergencyPress();
-        }
-      }}
-    >
+    <TouchableWithoutFeedback onPress={handleTap}>
       <View style={styles.container}>
         {!isAuthenticated ? (
           <View style={styles.card}>
             <Text style={styles.welcomeText}>¡Bienvenido!</Text>
             <Text style={styles.instructions}>
-              Toca dos veces la parte superior para autenticarte, dos veces la parte inferior para registrar una huella, o mantén presionada la parte inferior por 4 segundos para una emergencia.
+              Toca dos veces la parte superior para autenticarte o la parte inferior para registrar una nueva huella.
             </Text>
           </View>
         ) : (
           <View style={styles.card}>
             <Text style={styles.welcomeText}>Inicio de sesión exitoso</Text>
-            <Text style={styles.instructions}>{activeFeature || 'Selecciona una funcionalidad.'}</Text>
+            <Text style={styles.instructions}>
+              Accede a las funcionalidades de la aplicación.
+            </Text>
+            <Text style={styles.instructions}>
+              Toca dos veces la parte superior para usar el GPS, o dos veces la parte inferior para buscar rutas.
+            </Text>
           </View>
         )}
       </View>

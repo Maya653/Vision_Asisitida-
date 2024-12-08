@@ -7,7 +7,7 @@ export const registerFingerprint = async (userId, huellaData) => {
       },
       body: JSON.stringify({ userId, huellaData }),
     });
-    
+
     const textResponse = await response.text(); // Leer la respuesta como texto
     let data;
 
@@ -20,13 +20,10 @@ export const registerFingerprint = async (userId, huellaData) => {
 
     if (response.ok) {
       console.log('Huella registrada:', data.message);
-      return { success: true, message: data.message }; // Se agrega retorno de éxito
     } else {
       console.error('Error al registrar huella:', data.message);
-      return { success: false, message: data.message }; // Se agrega retorno de error
     }
   } catch (error) {
     console.error('Error de conexión:', error);
-    return { success: false, message: 'Error de conexión' }; // Manejo de error de conexión
   }
 };

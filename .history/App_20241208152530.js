@@ -132,7 +132,7 @@ const App = () => {
       if (result.success) {
         speak('Huella capturada. Registrando en el sistema.');
 
-        // Simulación de huella 
+        // Simulación de huella (reemplazar con datos reales si es necesario)
         const huellaData = 'data:image/png;base64,.....';
 
         // Registrar huella en el backend
@@ -165,7 +165,7 @@ const App = () => {
   const triggerEmergency = () => {
     speak('Emergencia activada. Enviando mensaje de ayuda.');
 
-    const phoneNumber = '+5573497101'; // Número real
+    const phoneNumber = '+521234567890'; // Cambiar por número real
     const message = 'El usuario tiene problemas.';
     const whatsappURL = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
 

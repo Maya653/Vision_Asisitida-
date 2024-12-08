@@ -1,8 +1,14 @@
-import { useKeepAwake } from 'expo-keep-awake'; // Mantiene la pantalla encendida
+import { useKeepAwake } from 'expo-keep-awake'; // Mantener la pantalla encendida
+import * as Linking from 'expo-linking'; // Para abrir WhatsApp
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useState } from 'react';
-import { Linking, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { registerFingerprint } from './services/fingerprintService';
 
 const App = () => {
@@ -12,7 +18,7 @@ const App = () => {
   const [timeoutId, setTimeoutId] = useState(null); // ID del temporizador
   const [lastTap, setLastTap] = useState(0); // Último toque registrado
   const [activeFeature, setActiveFeature] = useState(''); // Funcionalidad activa
-  const [pressStartTime, setPressStartTime] = useState(0); // Tiempo para el botón de emergencia
+  const [emergencyNumber, setEmergencyNumber] = useState('+5573497101'); // Número de emergencia (editar según necesidad)
 
   useKeepAwake();
 
@@ -27,13 +33,13 @@ const App = () => {
 
   const guideUser = () => {
     speak(
-      'Hola, soy tu app de visión asistida. Toca dos veces la parte superior para autenticarte, dos veces la parte inferior para registrar una nueva huella o mantén presionada la parte inferior por 4 segundos para activar una emergencia.'
+      'Hola, soy tu app de visión asistida. Toca dos veces la parte superior para autenticarte o la parte inferior para registrar una nueva huella. Mantén presionada la pantalla por 3 segundos para enviar un mensaje de emergencia.'
     );
   };
 
   const guidePostLogin = () => {
     speak(
-      'Inicio de sesión exitoso. Toca dos veces la parte superior para activar el GPS, dos veces la parte inferior para buscar rutas, o mantén presionada la parte inferior por 4 segundos para una emergencia.'
+      'Inicio de sesión exitoso. Toca dos veces la parte superior para activar el GPS, o dos veces la parte inferior para buscar rutas.'
     );
   };
 
@@ -80,13 +86,13 @@ const App = () => {
   const activateGPS = () => {
     speak('Activando GPS para localizar tu ubicación...');
     setActiveFeature('GPS activado');
-    // código para activar el GPS
+    // Lógica para activar el GPS
   };
 
   const activateRouteSearch = () => {
     speak('Buscando rutas disponibles. Por favor espera...');
     setActiveFeature('Búsqueda de rutas');
-    // código para búsqueda de rutas
+    // Lógica para búsqueda de rutas
   };
 
   const authenticateUser = async () => {
@@ -132,7 +138,7 @@ const App = () => {
       if (result.success) {
         speak('Huella capturada. Registrando en el sistema.');
 
-        // Simulación de huella 
+        // Simulación de huella (reemplazar con datos reales si es necesario)
         const huellaData = 'data:image/png;base64,.....';
 
         // Registrar huella en el backend
@@ -152,33 +158,19 @@ const App = () => {
     }
   };
 
-  const handleEmergencyPress = () => {
-    const now = Date.now();
+  const handleLongPress = async () => {
+    speak('Enviando mensaje de emergencia...');
+    const message = 'Hay una emergencia. Revisa la ubicación adjunta.';
+    const url = `whatsapp://send?phone=${emergencyNumber}&text=${encodeURIComponent(
+      message
+    )}`;
 
-    if (now - pressStartTime >= 4000) {
-      triggerEmergency();
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error('Error al abrir WhatsApp:', error);
+      speak('No se pudo enviar el mensaje de emergencia.');
     }
-
-    setPressStartTime(0);
-  };
-
-  const triggerEmergency = () => {
-    speak('Emergencia activada. Enviando mensaje de ayuda.');
-
-    const phoneNumber = '+5573497101'; // Número real
-    const message = 'El usuario tiene problemas.';
-    const whatsappURL = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-
-    Linking.canOpenURL(whatsappURL)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(whatsappURL);
-        } else {
-          console.error('No se pudo abrir WhatsApp');
-          speak('No se pudo abrir WhatsApp para enviar el mensaje.');
-        }
-      })
-      .catch((err) => console.error('Error al intentar abrir WhatsApp:', err));
   };
 
   useEffect(() => {
@@ -188,23 +180,15 @@ const App = () => {
   return (
     <TouchableWithoutFeedback
       onPress={handleTap}
-      onPressIn={(e) => {
-        const touchY = e.nativeEvent.pageY;
-        if (touchY > 500) setPressStartTime(Date.now());
-      }}
-      onPressOut={(e) => {
-        const touchY = e.nativeEvent.pageY;
-        if (touchY > 500) {
-          handleEmergencyPress();
-        }
-      }}
+      onLongPress={handleLongPress}
+      delayLongPress={3000} // Presión prolongada de 3 segundos
     >
       <View style={styles.container}>
         {!isAuthenticated ? (
           <View style={styles.card}>
             <Text style={styles.welcomeText}>¡Bienvenido!</Text>
             <Text style={styles.instructions}>
-              Toca dos veces la parte superior para autenticarte, dos veces la parte inferior para registrar una huella, o mantén presionada la parte inferior por 4 segundos para una emergencia.
+              Toca dos veces la parte superior para autenticarte o la parte inferior para registrar una nueva huella. Mantén presionada la pantalla 3 segundos para enviar un mensaje de emergencia.
             </Text>
           </View>
         ) : (
