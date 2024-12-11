@@ -1,11 +1,17 @@
 import { useKeepAwake } from 'expo-keep-awake'; // Mantiene la pantalla encendida
 import * as LocalAuthentication from 'expo-local-authentication';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useState } from 'react';
 import { Linking, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { registerFingerprint } from './services/fingerprintService';
+import GPS from './GPS'; // Importar archivo GPS.js
 
-const App = () => {
+const Stack = createStackNavigator();
+
+const HomeScreen = ({ navigation }) => {
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tapCount, setTapCount] = useState(0); // Contador de toques
   const [userId] = useState(Math.floor(Math.random() * 10000)); // ID de usuario aleatorio
@@ -13,6 +19,7 @@ const App = () => {
   const [lastTap, setLastTap] = useState(0); // Último toque registrado
   const [activeFeature, setActiveFeature] = useState(''); // Funcionalidad activa
   const [pressStartTime, setPressStartTime] = useState(0); // Tiempo para el botón de emergencia
+  const [showGPS, setShowGPS] = useState(false); // Estado para mostrar el módulo GPS
 
   useKeepAwake();
 
@@ -79,8 +86,8 @@ const App = () => {
 
   const activateGPS = () => {
     speak('Activando GPS para localizar tu ubicación...');
-    setActiveFeature('GPS activado');
-    // código para activar el GPS
+    navigation.navigate('GPS');
+
   };
 
   const activateRouteSearch = () => {
@@ -217,7 +224,16 @@ const App = () => {
     </TouchableWithoutFeedback>
   );
 };
-
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="GPS" component={GPS} options={{ title: 'GPS' }} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -248,4 +264,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;

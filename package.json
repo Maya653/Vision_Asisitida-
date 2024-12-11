@@ -12,6 +12,9 @@
   "dependencies": {
     "@react-native-community/voice": "^1.1.9",
     "@react-native-voice/voice": "^3.2.4",
+    "@react-navigation/native": "^7.0.13",
+    "@react-navigation/stack": "^7.0.18",
+    "axios": "^1.7.9",
     "body-parser": "^1.20.3",
     "expo": "~52.0.7",
     "expo-av": "~15.0.1",
@@ -29,6 +32,11 @@
     "react": "18.3.1",
     "react-native": "0.76.3",
     "react-native-gesture-handler": "^2.21.2",
+    "react-native-get-random-values": "^1.11.0",
+    "react-native-maps": "1.18.0",
+    "react-native-reanimated": "^3.16.5",
+    "react-native-safe-area-context": "^5.0.0",
+    "react-native-screens": "^4.3.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-voice": "^0.3.0",
     "visionasistidaapp": "file:"
