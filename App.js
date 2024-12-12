@@ -1,4 +1,4 @@
-import { useKeepAwake } from 'expo-keep-awake'; // Mantiene la pantalla encendida
+import { useKeepAwake } from 'expo-keep-awake';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -7,11 +7,11 @@ import React, { useEffect, useState } from 'react';
 import { Linking, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { registerFingerprint } from './services/fingerprintService';
 import GPS from './GPS'; // Importar archivo GPS.js
+import BuscarRutas from './BuscarRutas'; // Importar archivo BuscarRutas.js
 
 const Stack = createStackNavigator();
 
 const HomeScreen = ({ navigation }) => {
-
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tapCount, setTapCount] = useState(0); // Contador de toques
   const [userId] = useState(Math.floor(Math.random() * 10000)); // ID de usuario aleatorio
@@ -87,13 +87,11 @@ const HomeScreen = ({ navigation }) => {
   const activateGPS = () => {
     speak('Activando GPS para localizar tu ubicación...');
     navigation.navigate('GPS');
-
   };
 
   const activateRouteSearch = () => {
     speak('Buscando rutas disponibles. Por favor espera...');
-    setActiveFeature('Búsqueda de rutas');
-    // código para búsqueda de rutas
+    navigation.navigate('BuscarRutas'); // Navegar a la pantalla BuscarRutas
   };
 
   const authenticateUser = async () => {
@@ -139,7 +137,7 @@ const HomeScreen = ({ navigation }) => {
       if (result.success) {
         speak('Huella capturada. Registrando en el sistema.');
 
-        // Simulación de huella 
+        // Simulación de huella
         const huellaData = 'data:image/png;base64,.....';
 
         // Registrar huella en el backend
@@ -224,16 +222,19 @@ const HomeScreen = ({ navigation }) => {
     </TouchableWithoutFeedback>
   );
 };
+
 export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Home">
         <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
         <Stack.Screen name="GPS" component={GPS} options={{ title: 'GPS' }} />
+        <Stack.Screen name="BuscarRutas" component={BuscarRutas} options={{ title: 'Buscar Rutas' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -263,4 +264,3 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
-
